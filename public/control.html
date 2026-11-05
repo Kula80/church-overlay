@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Church Overlay - Control</title>
+  <!-- Opened as a file? It only works through the server, so go there. -->
+  <script>if (location.protocol === 'file:') location.replace('http://localhost:5500/control.html');</script>
+  <link rel="stylesheet" href="control.css">
+  <link rel="stylesheet" href="rich.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">✝ Church Overlay</div>
+    <div class="onair" id="onair"><span class="dot"></span><span id="onairText">Nothing on screen</span></div>
+    <button class="btn danger" id="clearBtn" title="Hide the lower third (Esc)">Clear (Esc)</button>
+  </header>
+
+  <main class="layout">
+    <section class="panel">
+      <nav class="tabs" id="tabs">
+        <button data-tab="order">📋 Order</button>
+        <button data-tab="bible" class="active">Bible</button>
+        <button data-tab="notes">Sermon Notes</button>
+        <button data-tab="songs">Songs</button>
+        <button data-tab="names">Names</button>
+        <button data-tab="messages">Messages</button>
+        <button data-tab="countdown">Countdown</button>
+        <button data-tab="style">Style</button>
+      </nav>
+
+      <!-- ORDER OF SERVICE -->
+      <div class="tab hidden" id="tab-order">
+        <div class="toolbar">
+          <div class="result-head">
+            <strong>Order of service</strong>
+            <div class="actions">
+              <button class="btn" id="orderPrev" type="button">◀ Previous</button>
+              <button class="btn primary" id="orderNext" type="button">Next ▶</button>
+              <button class="btn" id="orderClear" type="button">Clear order</button>
+            </div>
+          </div>
+          <p class="hint">
+            Line the service up before Sunday. Put something on screen (a verse, a name, a message…) and press
+            <b>+ Add to order</b> under the preview, or press <b>+ Add song to order</b> on the Songs tab for a whole song.
+            During the service, <b>Next ▶</b> (or <b>N</b>) goes through it in order. Songs go section by section, then
+            move on.
+          </p>
+        </div>
+        <div class="list" id="orderList"></div>
+      </div>
+
+      <!-- BIBLE -->
+      <div class="tab" id="tab-bible">
+        <div class="toolbar">
+          <div class="row">
+            <select id="bibleTranslation" class="grow" title="Translation"></select>
+            <select id="bibleSecond" title="Show a second translation under each verse (e.g. English + Twi)">
+              <option value="">+ Second translation: none</option>
+            </select>
+            <button class="btn" id="bibleManageBtn" type="button">Download / manage Bibles</button>
+          </div>
+          <form class="row" id="bibleForm">
+            <div class="suggest-wrap grow">
+              <input id="bibleRef" placeholder="Go to: John 3:16-18, Psalm 23, Yohane 3:16" autocomplete="off">
+              <div class="suggest hidden" id="bibleSuggest"></div>
+            </div>
+            <button class="btn primary" type="submit">Find</button>
+            <button class="btn" id="bibleHide" type="button" title="Take the Bible verse off screen">Hide</button>
+          </form>
+          <div class="chips" id="bibleRecent"></div>
+        </div>
+        <div class="toolbar scriptures">
+          <div class="result-head">
+            <strong>📖 Today's scriptures <span class="sub" id="scripturesCount"></span></strong>
+            <div class="actions">
+              <button class="btn small primary" id="scripturesShow" type="button" data-src="scriptures">Show all on screen</button>
+              <button class="btn small" id="scripturesHide" type="button" title="Take today's scriptures off screen">Hide</button>
+              <button class="btn small" id="scripturesClear" type="button">Clear list</button>
+            </div>
+          </div>
+          <div class="chips" id="scripturesList"></div>
+        </div>
+        <div class="error" id="bibleError"></div>
+
+        <!-- Browse: books -> chapters -> verses -->
+        <div id="bibleBrowse">
+          <div class="crumbs" id="bibleCrumbs"></div>
+          <div id="bibleBooks"></div>
+          <div id="bibleChapters" class="hidden"></div>
+          <div id="bibleBackBottom" class="back-bottom"></div>
+          <div id="bibleResult" class="hidden">
+            <div class="result-head">
+              <strong id="bibleTitle"></strong>
+              <div class="actions">
+                <button class="btn small" id="biblePrevCh" title="Previous chapter">‹ Chapter</button>
+                <button class="btn small" id="bibleNextCh" title="Next chapter">Chapter ›</button>
+<span class="seg" id="biblePerScreen" title="Show this many verses at a time">
+                  <span class="seg-label">Verses:</span>
+                  <button class="btn small" type="button" data-n="1">1</button>
+                  <button class="btn small" type="button" data-n="2">2</button>
+                  <button class="btn small" type="button" data-n="3">3</button>
+                </span>
+                <button class="btn small" id="bibleShowAll">Show whole passage</button>
+              </div>
+            </div>
+            <div class="verse-nav">
+              <button class="btn" id="bibleVersePrev" type="button" title="Previous verse (↑)">‹ Previous verse</button>
+              <button class="btn primary" id="bibleVerseNext" type="button" title="Next verse (↓)">Next verse ›</button>
+            </div>
+            <p class="hint">Click a verse to show it. Shift+click to show a range. ↑ ↓ to step through.</p>
+            <div class="pager hidden" id="biblePager">
+              <button class="btn small" id="biblePagePrev" type="button">‹ Previous</button>
+              <span id="biblePagerText"></span>
+              <button class="btn small primary" id="biblePageNext" type="button">Next ›</button>
+            </div>
+            <div class="list" id="bibleVerses"></div>
+          </div>
+        </div>
+
+        <!-- Manage: installed, quick add, catalog, import -->
+        <div id="bibleManager" class="hidden">
+          <div class="result-head">
+            <strong>Your Bibles</strong>
+            <button class="btn primary" id="bibleManagerClose" type="button">Done</button>
+          </div>
+          <p class="hint">Bibles are saved on this computer and work without internet. The label is what shows on screen.</p>
+          <div class="list" id="bibleInstalled"></div>
+
+          <div class="section-label">Quick add</div>
+          <div class="row" id="bibleQuick"></div>
+
+          <details class="library">
+            <summary>📚 English Bible library (<span id="englishCount">…</span> free translations)</summary>
+            <p class="hint">
+              NIV, ESV, NKJV, NLT and AMP are not here: they are copyrighted and not free to download.
+              If your church has a licence for one, import it below.
+            </p>
+            <div class="list" id="englishList"></div>
+          </details>
+
+          <div class="section-label">Find more (1,200+ free translations)</div>
+          <input id="catalogSearch" class="full" placeholder="Search language or name, e.g. Twi, Ewe, Yoruba, French, Hausa">
+          <div class="list" id="catalogList"></div>
+
+          <div class="section-label">Import a Bible file</div>
+          <p class="hint">
+            For Bibles that aren't in the list, such as <b>Ga</b>. Use a CSV or TSV file with the columns
+            <code>Book, Chapter, Verse, Text</code>, or a JSON Bible file.
+            Only import Bibles your church has permission to use.
+          </p>
+          <div class="row">
+            <input id="importLabel" class="grow" placeholder="Label shown on screen, e.g. Ga">
+            <input type="file" id="importFile" accept=".csv,.tsv,.txt,.json">
+            <button class="btn primary" id="importBtn" type="button">Import</button>
+          </div>
+          <div class="hint" id="importStatus"></div>
+        </div>
+      </div>
+
+      <!-- NOTES -->
+      <div class="tab hidden" id="tab-notes">
+        <div class="row">
+          <select id="sermonSelect" class="grow" title="Saved sermons"></select>
+          <button class="btn" id="sermonNew">New</button>
+          <button class="btn" id="sermonDelete">Delete</button>
+        </div>
+        <div class="toolbar">
+          <div class="row">
+            <button class="btn" id="notesShowAll" data-src="note:all">Show all points</button>
+            <button class="btn" id="notesHide" type="button" title="Take the sermon notes off screen">Hide</button>
+            <button class="btn" id="notesScriptures" type="button" data-src="scriptures" title="Every Bible verse shown today, for the end of the sermon">📖 Today's scriptures</button>
+            <button class="btn" id="notesCompare" data-src="note:compare" disabled>Side by side</button>
+            <button class="btn" id="notesTimer" type="button" title="Show and hide the sermon title on a timer">⏱ Timer (title)</button>
+          </div>
+          <div class="options">
+            <label class="check"><input type="checkbox" id="optNumber" checked> Label points ("Point 1")</label>
+            <label class="check"><input type="checkbox" id="optReveal"> Reveal sub-points one at a time</label>
+            <label class="check"><input type="checkbox" id="optAll"> Keep all points on screen</label>
+          </div>
+        </div>
+        <div class="row">
+          <input id="sermonTitle" class="grow" placeholder="Sermon title / topic (e.g. The Power of Faith)">
+        </div>
+        <div class="notes-grid">
+          <div class="notes-editor">
+            <div class="rich-bar" id="notesBar" role="toolbar" aria-label="Text styling">
+              <button class="btn small" type="button" data-cmd="bold" title="Bold (Ctrl+B)"><b>B</b></button>
+              <button class="btn small" type="button" data-cmd="italic" title="Italic (Ctrl+I)"><i>I</i></button>
+              <button class="btn small" type="button" data-cmd="underline" title="Underline (Ctrl+U)"><u>U</u></button>
+              <button class="btn small" type="button" data-case="caps" title="ALL CAPITALS. Press again to go back to how you typed it">AA</button>
+              <button class="btn small" type="button" data-case="title" title="Capital First Letter Of Each Word, and small letters after it. Press again to take the capitals off">Aa</button>
+              <button class="btn small" type="button" data-case="lower" title="all small letters. Press again to go back to how you typed it">aa</button>
+              <span class="rich-sep"></span>
+              <button class="btn small swatch" type="button" data-color="default" title="Normal colour" aria-label="Normal colour"><span></span></button>
+              <button class="btn small swatch rt-gold" type="button" data-color="gold" title="Gold (your accent colour)" aria-label="Gold"><span></span></button>
+              <button class="btn small swatch rt-red" type="button" data-color="red" title="Red" aria-label="Red"><span></span></button>
+              <button class="btn small swatch rt-blue" type="button" data-color="blue" title="Blue" aria-label="Blue"><span></span></button>
+              <button class="btn small swatch rt-green" type="button" data-color="green" title="Green" aria-label="Green"><span></span></button>
+              <span class="rich-sep"></span>
+              <button class="btn small" type="button" data-size="5" title="Bigger text">A+</button>
+              <button class="btn small" type="button" data-size="2" title="Smaller text">A−</button>
+              <span class="rich-sep"></span>
+              <button class="btn small" type="button" data-sub title="Make the selected lines sub-points, or back to points">• Sub-point</button>
+              <button class="btn small" type="button" data-cmd="removeFormat" title="Remove styling from the selected text">Clear styling</button>
+            </div>
+            <div class="rich-box" id="notesBox" contenteditable="true" spellcheck="true" role="textbox" aria-multiline="true" aria-label="Sermon notes"></div>
+            <textarea id="notesText" class="hidden" spellcheck="true" placeholder="1. Faith is confidence in God
+- It is the substance of things hoped for
+- It is the evidence of things not seen
+2. Faith pleases God
+- Without faith it is impossible to please Him
+3. Faith takes action"></textarea>
+            <p class="hint">
+              Each new line is a <b>point</b> &nbsp;·&nbsp;
+              start with <code>-</code> or indent for a <b>sub-point</b> &nbsp;·&nbsp;
+              select words to style them
+            </p>
+          </div>
+          <div>
+            <p class="hint">Click to show. ↑ ↓ to move through the outline. <b>Ctrl+click</b> 2 or 3 points, then press <b>Side by side</b> to compare them.</p>
+            <div class="list outline" id="notesOutline"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SONGS -->
+      <div class="tab hidden" id="tab-songs">
+        <div class="row">
+          <select id="songSelect" class="grow" title="Saved songs"></select>
+          <button class="btn primary" id="songShow" type="button" title="Show the selected section (or the first one)">Show</button>
+          <button class="btn" id="songHide" type="button" title="Take the lyrics off screen">Hide</button>
+          <button class="btn" id="songNew">New song</button>
+          <button class="btn" id="songToOrder" type="button" title="Add this whole song to the order of service">+ Add song to order</button>
+          <button class="btn" id="songUpload" type="button" title="Add song files: SongSelect text, ChordPro or plain text">⬆ Upload songs</button>
+          <input type="file" id="songFiles" multiple accept=".txt,.cho,.chopro,.chordpro,.pro,.crd" hidden>
+          <button class="btn" id="songDelete">Delete</button>
+        </div>
+        <div class="hint" id="songUploadStatus"></div>
+        <div class="toolbar">
+          <div class="options">
+            <label class="inline">Lines per screen
+              <select id="songLines">
+                <option value="0">Whole section</option>
+                <option value="2">2 lines</option>
+                <option value="3">3 lines</option>
+                <option value="4">4 lines</option>
+              </select>
+            </label>
+            <label class="check"><input type="checkbox" id="songShowTitle"> Show song title above lyrics</label>
+          </div>
+        </div>
+        <div class="notes-grid">
+          <div class="notes-editor">
+            <div class="row">
+              <input id="songTitle" class="grow" placeholder="Song title">
+              <input id="songAuthor" class="grow" placeholder="Author (optional)">
+            </div>
+            <textarea id="songText" spellcheck="true" placeholder="[Verse 1]
+Amazing grace how sweet the sound
+That saved a wretch like me
+I once was lost but now am found
+Was blind but now I see
+
+[Chorus]
+My chains are gone
+I've been set free"></textarea>
+            <p class="hint">
+              Label sections with <code>[Verse 1]</code>, <code>[Chorus]</code>, <code>[Bridge]</code>…
+              or just leave a blank line between them.
+            </p>
+          </div>
+          <div>
+            <p class="hint">Click to show. ↑ ↓ to move through the song. Click Chorus again whenever it repeats.</p>
+            <div class="list outline" id="songSlides"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- NAMES -->
+      <div class="tab hidden" id="tab-names">
+        <div class="toolbar">
+          <div class="options">
+            <label class="inline">Name
+              <select id="nameCase">
+                <option value="">As typed</option>
+                <option value="upper">CAPS</option>
+                <option value="title">Capitalize Each Word</option>
+                <option value="lower">lowercase</option>
+              </select>
+            </label>
+            <label class="inline">Title
+              <select id="roleCase">
+                <option value="">As typed</option>
+                <option value="upper">CAPS</option>
+                <option value="title">Capitalize Each Word</option>
+                <option value="lower">lowercase</option>
+              </select>
+            </label>
+          </div>
+        </div>
+        <form class="row" id="nameForm">
+          <input id="nameName" class="grow" placeholder="Name (e.g. Pastor John Doe)" required>
+          <input id="nameRole" class="grow" placeholder="Title (e.g. Senior Pastor)">
+          <button class="btn" type="submit" name="save">+ Save to list</button>
+          <button class="btn primary" type="button" id="nameShow">Show</button>
+          <button class="btn" type="button" id="nameHide">Hide</button>
+          <button class="btn" type="button" id="nameTimer" title="Show and hide this name on a timer">⏱ Timer</button>
+        </form>
+        <div class="section-label">Saved speakers</div>
+        <div class="list" id="namesList"></div>
+      </div>
+
+      <!-- MESSAGES -->
+      <div class="tab hidden" id="tab-messages">
+        <form id="msgForm" class="stack">
+          <div class="row">
+            <input id="msgTag" class="grow" placeholder="Label (e.g. Announcement, Prayer, Give)">
+            <input id="msgTitle" class="grow" placeholder="Heading (optional)">
+          </div>
+          <div class="rich-bar" id="msgBar" role="toolbar" aria-label="Text styling">
+            <button class="btn small" type="button" data-cmd="bold" title="Bold (Ctrl+B)"><b>B</b></button>
+            <button class="btn small" type="button" data-cmd="italic" title="Italic (Ctrl+I)"><i>I</i></button>
+            <button class="btn small" type="button" data-cmd="underline" title="Underline (Ctrl+U)"><u>U</u></button>
+            <button class="btn small" type="button" data-case="caps" title="ALL CAPITALS. Press again to go back to how you typed it">AA</button>
+            <button class="btn small" type="button" data-case="title" title="Capital First Letter Of Each Word, and small letters after it. Press again to take the capitals off">Aa</button>
+            <button class="btn small" type="button" data-case="lower" title="all small letters. Press again to go back to how you typed it">aa</button>
+            <span class="rich-sep"></span>
+            <button class="btn small swatch" type="button" data-color="default" title="Normal colour" aria-label="Normal colour"><span></span></button>
+            <button class="btn small swatch rt-gold" type="button" data-color="gold" title="Gold (your accent colour)" aria-label="Gold"><span></span></button>
+            <button class="btn small swatch rt-red" type="button" data-color="red" title="Red" aria-label="Red"><span></span></button>
+            <button class="btn small swatch rt-blue" type="button" data-color="blue" title="Blue" aria-label="Blue"><span></span></button>
+            <button class="btn small swatch rt-green" type="button" data-color="green" title="Green" aria-label="Green"><span></span></button>
+            <span class="rich-sep"></span>
+            <button class="btn small" type="button" data-size="5" title="Bigger text">A+</button>
+            <button class="btn small" type="button" data-size="2" title="Smaller text">A−</button>
+            <button class="btn small" type="button" data-cmd="removeFormat" title="Remove styling from the selected text">Clear styling</button>
+          </div>
+          <div class="rich-box short" id="msgBox" contenteditable="true" spellcheck="true" role="textbox" aria-multiline="true" aria-label="Message text"></div>
+          <textarea id="msgText" class="hidden" rows="3" placeholder="Message text, e.g. Youth service this Friday at 6pm"></textarea>
+          <div class="row">
+            <button class="btn" type="submit">Save</button>
+            <button class="btn primary" type="button" id="msgShow">Show</button>
+            <button class="btn" type="button" id="msgHide">Hide</button>
+          </div>
+        </form>
+        <div class="list" id="msgList"></div>
+
+        <div class="section-label">💝 Giving</div>
+        <div class="stack">
+          <div class="row">
+            <input id="givTag" class="grow" placeholder="Label (e.g. Tithes &amp; Offering)">
+            <input id="givTitle" class="grow" placeholder="Heading (e.g. Give online)">
+          </div>
+          <div class="rich-bar" id="givBar" role="toolbar" aria-label="Text styling">
+            <button class="btn small" type="button" data-cmd="bold" title="Bold (Ctrl+B)"><b>B</b></button>
+            <button class="btn small" type="button" data-cmd="italic" title="Italic (Ctrl+I)"><i>I</i></button>
+            <button class="btn small" type="button" data-cmd="underline" title="Underline (Ctrl+U)"><u>U</u></button>
+            <button class="btn small" type="button" data-case="caps" title="ALL CAPITALS. Press again to go back to how you typed it">AA</button>
+            <button class="btn small" type="button" data-case="title" title="Capital First Letter Of Each Word, and small letters after it. Press again to take the capitals off">Aa</button>
+            <button class="btn small" type="button" data-case="lower" title="all small letters. Press again to go back to how you typed it">aa</button>
+            <span class="rich-sep"></span>
+            <button class="btn small swatch" type="button" data-color="default" title="Normal colour" aria-label="Normal colour"><span></span></button>
+            <button class="btn small swatch rt-gold" type="button" data-color="gold" title="Gold (your accent colour)" aria-label="Gold"><span></span></button>
+            <button class="btn small swatch rt-red" type="button" data-color="red" title="Red" aria-label="Red"><span></span></button>
+            <button class="btn small swatch rt-blue" type="button" data-color="blue" title="Blue" aria-label="Blue"><span></span></button>
+            <button class="btn small swatch rt-green" type="button" data-color="green" title="Green" aria-label="Green"><span></span></button>
+            <span class="rich-sep"></span>
+            <button class="btn small" type="button" data-size="5" title="Bigger text">A+</button>
+            <button class="btn small" type="button" data-size="2" title="Smaller text">A−</button>
+            <button class="btn small" type="button" data-cmd="removeFormat" title="Remove styling from the selected text">Clear styling</button>
+          </div>
+          <div class="rich-box short" id="givBox" contenteditable="true" spellcheck="true" role="textbox" aria-multiline="true" aria-label="Giving details"></div>
+          <textarea id="givLines" class="hidden" rows="3" placeholder="One line each, e.g.
+MTN MoMo: 024 000 0000 (Church name)
+Bank: Name of bank · Account 0000000000"></textarea>
+          <input id="givQr" placeholder="QR code (optional): a payment link or number people can scan">
+          <p class="fit-warn cut hidden" id="givQrWarn" role="alert">⚠ That is too long for a QR code. The details will show without one. Use a shorter link.</p>
+          <div class="row">
+            <button class="btn primary" type="button" id="givShow" data-src="giving">Show giving</button>
+            <button class="btn" type="button" id="givHide">Hide</button>
+            <span class="hint">Saved as you type.</span>
+          </div>
+        </div>
+
+        <div class="section-label">📰 Scrolling ticker</div>
+        <div class="stack">
+          <div class="row">
+            <input id="tkLabelIn" class="grow" placeholder="Label (optional, e.g. NEWS)">
+            <label class="inline">Speed
+              <select id="tkSpeed">
+                <option value="70">Slow</option>
+                <option value="120">Normal</option>
+                <option value="200">Fast</option>
+              </select>
+            </label>
+          </div>
+          <div class="rich-bar" id="tkBar" role="toolbar" aria-label="Text styling">
+            <button class="btn small" type="button" data-cmd="bold" title="Bold (Ctrl+B)"><b>B</b></button>
+            <button class="btn small" type="button" data-cmd="italic" title="Italic (Ctrl+I)"><i>I</i></button>
+            <button class="btn small" type="button" data-cmd="underline" title="Underline (Ctrl+U)"><u>U</u></button>
+            <button class="btn small" type="button" data-case="caps" title="ALL CAPITALS. Press again to go back to how you typed it">AA</button>
+            <button class="btn small" type="button" data-case="title" title="Capital First Letter Of Each Word, and small letters after it. Press again to take the capitals off">Aa</button>
+            <button class="btn small" type="button" data-case="lower" title="all small letters. Press again to go back to how you typed it">aa</button>
+            <span class="rich-sep"></span>
+            <button class="btn small swatch" type="button" data-color="default" title="Normal colour" aria-label="Normal colour"><span></span></button>
+            <button class="btn small swatch rt-gold" type="button" data-color="gold" title="Gold (your accent colour)" aria-label="Gold"><span></span></button>
+            <button class="btn small swatch rt-red" type="button" data-color="red" title="Red" aria-label="Red"><span></span></button>
+            <button class="btn small swatch rt-blue" type="button" data-color="blue" title="Blue" aria-label="Blue"><span></span></button>
+            <button class="btn small swatch rt-green" type="button" data-color="green" title="Green" aria-label="Green"><span></span></button>
+            <span class="rich-sep"></span>
+            <button class="btn small" type="button" data-size="5" title="Bigger text">A+</button>
+            <button class="btn small" type="button" data-size="2" title="Smaller text">A−</button>
+            <button class="btn small" type="button" data-cmd="removeFormat" title="Remove styling from the selected text">Clear styling</button>
+          </div>
+          <div class="rich-box short" id="tkBox" contenteditable="true" spellcheck="true" role="textbox" aria-multiline="true" aria-label="Ticker text"></div>
+          <textarea id="tkTextIn" class="hidden" rows="3" placeholder="One item per line, e.g.
+Welcome to our online family
+Prayer line: 024 000 0000"></textarea>
+          <div class="row">
+            <button class="btn primary" type="button" id="tkStart">▶ Start ticker</button>
+            <button class="btn" type="button" id="tkStop">■ Stop ticker</button>
+            <span class="hint">Runs along the bottom while other things show. Edits update it live.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- COUNTDOWN -->
+      <div class="tab hidden" id="tab-countdown">
+        <div class="stack">
+          <label>Label <input id="cdLabel" value="Service begins in"></label>
+          <label>When it reaches zero show <input id="cdEnd" value="Welcome! We're glad you're here"></label>
+          <div class="row">
+            <button class="btn" data-min="2">2 min</button>
+            <button class="btn" data-min="5">5 min</button>
+            <button class="btn" data-min="10">10 min</button>
+            <button class="btn" data-min="15">15 min</button>
+            <button class="btn" type="button" id="cdStop">■ Stop</button>
+          </div>
+          <div class="row">
+            <label class="grow">Or count down to a time <input type="time" id="cdTime"></label>
+            <button class="btn primary" id="cdStartTime">Start</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- STYLE -->
+      <div class="tab hidden" id="tab-style">
+        <form class="style-grid" id="styleForm">
+          <label>Position
+            <select name="position">
+              <option value="left">Left</option>
+              <option value="center">Center</option>
+              <option value="right">Right</option>
+            </select>
+          </label>
+          <label>Animation
+            <select name="animation">
+              <option value="slide">Slide up</option>
+              <option value="fade">Fade</option>
+            </select>
+          </label>
+          <label>Font
+            <select name="font">
+              <option value="'Segoe UI', Arial, sans-serif">Segoe UI</option>
+              <option value="Arial, Helvetica, sans-serif">Arial</option>
+              <option value="Georgia, 'Times New Roman', serif">Georgia (serif)</option>
+              <option value="'Trebuchet MS', sans-serif">Trebuchet</option>
+              <option value="Verdana, sans-serif">Verdana</option>
+              <option value="'Palatino Linotype', Palatino, serif">Palatino</option>
+              <option value="Impact, 'Arial Black', sans-serif">Impact</option>
+            </select>
+          </label>
+          <label>Text size <input type="range" name="fontScale" min="0.6" max="1.6" step="0.05"></label>
+          <label>Width (%) <input type="range" name="width" min="30" max="90" step="1"></label>
+          <label>Distance from bottom <input type="range" name="bottom" min="0" max="400" step="5"></label>
+          <label>Accent colour <input type="color" name="accent"></label>
+          <label>Box colour <input type="color" name="bg"></label>
+          <label>Box opacity <input type="range" name="bgOpacity" min="0" max="1" step="0.02"></label>
+          <label>Text colour <input type="color" name="text"></label>
+          <label>Full screen background opacity <input type="range" name="fullOpacity" min="0" max="1" step="0.02"></label>
+        </form>
+        <div class="row">
+          <button class="btn" id="styleTest">Show test lower third</button>
+          <button class="btn" id="styleReset">Reset to default</button>
+        </div>
+
+        <div class="section-label">🖼 Full screen background</div>
+        <p class="hint">A picture or a looping video behind full screen verses and lyrics. The box colour is laid over it;
+          use <i>Full screen background opacity</i> above to make it lighter or darker.</p>
+        <div class="row">
+          <input type="file" id="bgFile" accept="image/*,video/mp4,video/webm,video/quicktime">
+          <button class="btn" type="button" id="bgRemove">Remove background</button>
+        </div>
+        <div class="hint" id="bgStatus"></div>
+
+        <div class="section-label">⛪ Corner logo</div>
+        <div class="row">
+          <label class="inline">Picture <input type="file" id="logoFile" accept="image/*"></label>
+          <input id="logoText" class="grow" placeholder="…or text, e.g. Grace Chapel International">
+        </div>
+        <div class="row">
+          <label class="inline">Corner
+            <select id="logoCorner">
+              <option value="top-left">Top left</option>
+              <option value="top-right">Top right</option>
+              <option value="bottom-left">Bottom left</option>
+              <option value="bottom-right">Bottom right</option>
+            </select>
+          </label>
+          <label class="inline">Size <input type="range" id="logoSize" min="4" max="30" step="1"></label>
+          <label class="inline">Opacity <input type="range" id="logoOpacity" min="0.2" max="1" step="0.05"></label>
+        </div>
+        <div class="row">
+          <button class="btn primary" type="button" id="logoOn">Show logo</button>
+          <button class="btn" type="button" id="logoOff">Hide logo</button>
+          <button class="btn" type="button" id="logoRemove">Remove picture</button>
+        </div>
+        <div class="hint" id="logoStatus"></div>
+
+        <div class="section-label">📱 Use on your phone</div>
+        <div class="phone">
+          <div class="phone-qr" id="phoneQr"></div>
+          <div>
+            <p class="hint">Scan with a phone on the same Wi-Fi to open this panel on it. If it doesn't open, allow
+              Node.js through Windows Firewall (Private networks).</p>
+            <div id="phoneUrls"></div>
+          </div>
+        </div>
+
+        <div class="section-label">🎛 Stream Deck and remote buttons</div>
+        <p class="hint">In Stream Deck, use the <b>Website</b> action, tick <b>GET request in background</b>, and paste one
+          of these. Next and Previous work on whichever tab is open here (verses, notes, songs or the order), so keep this
+          panel open in OBS.</p>
+        <div class="remote-list" id="remoteList"></div>
+
+        <div class="section-label">💾 Backup</div>
+        <p class="hint">One file with your songs, sermon notes, names, messages, order of service, giving, ticker, logo and
+          style. Bibles aren't in it (download them again), and nor are uploaded pictures and videos.</p>
+        <div class="row">
+          <a class="btn" href="/api/backup" download>⬇ Download backup</a>
+          <button class="btn" type="button" id="restoreBtn">⬆ Restore from backup…</button>
+          <input type="file" id="restoreFile" accept=".json,application/json" hidden>
+        </div>
+        <div class="hint" id="restoreStatus"></div>
+      </div>
+    </section>
+
+    <aside class="side">
+      <div class="preview-wrap">
+        <iframe id="preview" src="overlay.html?preview" title="Preview"></iframe>
+      </div>
+      <p class="hint">Preview of what OBS shows.
+        <button class="btn small" id="orderAdd" type="button" title="Add what's on screen to the order of service">+ Add to order</button></p>
+      <p class="fit-warn hidden" id="fitWarn" role="alert"></p>
+      <div class="layout-row">
+        <div class="seg" id="layoutSeg">
+          <span class="seg-label">Layout:</span>
+          <button class="btn small" type="button" data-layout="lower">Lower third</button>
+          <button class="btn small" type="button" data-layout="full">Full screen</button>
+        </div>
+        <div class="seg" id="alignSeg">
+          <span class="seg-label">Align:</span>
+          <button class="btn small" type="button" data-align="left">Left</button>
+          <button class="btn small" type="button" data-align="center">Center</button>
+          <button class="btn small" type="button" data-align="right">Right</button>
+        </div>
+      </div>
+      <div class="auto-box">
+        <div class="result-head">
+          <strong>⏱ Timer</strong>
+          <button class="btn small hidden" id="autoStop" type="button">Stop timer</button>
+        </div>
+        <div class="options">
+          <label class="inline">Show for
+            <input type="number" id="autoShowFor" min="1" class="num-input">
+            <select id="autoShowUnit">
+              <option value="sec">seconds</option>
+              <option value="min">minutes</option>
+            </select>
+          </label>
+          <label class="inline">then hide for
+            <input type="number" id="autoHideFor" min="1" class="num-input">
+            <select id="autoHideUnit">
+              <option value="min">minutes</option>
+              <option value="hour">hours</option>
+            </select>
+          </label>
+        </div>
+        <div class="hint" id="autoStatus"></div>
+      </div>
+      <details class="setup" id="obsSetup" open>
+        <summary><strong>OBS setup links</strong></summary>
+        <p><b>Browser source</b> (what viewers see, 1920 × 1080). Click to copy:</p>
+        <code class="copy" id="urlOverlay"></code>
+        <p><b>Docks → Custom Browser Docks</b> (this control panel). Click to copy:</p>
+        <code class="copy" id="urlControl"></code>
+      </details>
+    </aside>
+  </main>
+
+  <script src="qr.js"></script>
+  <script src="richtext.js"></script>
+  <script src="control.js"></script>
+</body>
+</html>

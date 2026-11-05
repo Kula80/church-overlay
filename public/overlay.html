@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Church Overlay - Output</title>
+  <script>if (location.protocol === 'file:') location.replace('http://localhost:5500/overlay.html');</script>
+  <link rel="stylesheet" href="overlay.css">
+  <link rel="stylesheet" href="rich.css">
+</head>
+<body>
+  <div id="stage">
+    <div id="logo" class="logo"></div>
+    <div id="lt" class="lt">
+      <div class="lt-bg" id="ltbg"></div>
+      <div class="lt-tag" id="tag"></div>
+      <div class="lt-box">
+        <div class="lt-title" id="title"></div>
+        <div class="lt-text" id="text"></div>
+        <ul class="lt-subs" id="subs"></ul>
+        <div class="lt-grid" id="grid"></div>
+      </div>
+    </div>
+    <div id="ticker" class="ticker">
+      <div class="tk-label" id="tkLabel"></div>
+      <div class="tk-track"><div class="tk-text" id="tkText"></div></div>
+    </div>
+  </div>
+  <script src="qr.js"></script>
+  <script src="richtext.js"></script>
+  <script src="overlay.js"></script>
+</body>
+</html>

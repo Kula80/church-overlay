@@ -1,0 +1,4 @@
+data/
+node.exe
+.claude/
+*.log

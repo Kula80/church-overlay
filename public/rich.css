@@ -1,0 +1,10 @@
+/* Word-style text colours and sizes, shared by the screen and the control panel. */
+.rt-gold { color: var(--accent); }
+.rt-red { color: #ff6b6b; }
+.rt-blue { color: #6cb6ff; }
+.rt-green { color: #5ee08a; }
+.rt-caps { text-transform: uppercase; }
+.rt-title { text-transform: capitalize; }
+.rt-lower { text-transform: lowercase; }
+.rt-big { font-size: 1.3em; }
+.rt-small { font-size: 0.8em; }

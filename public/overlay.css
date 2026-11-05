@@ -1,0 +1,326 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  overflow: hidden;
+}
+
+/* Everything is laid out on a 1920x1080 canvas and scaled to the window,
+   so it looks identical in OBS and in the control panel preview. */
+#stage {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1920px;
+  height: 1080px;
+  transform-origin: 0 0;
+  font-family: var(--font);
+  color: var(--text);
+}
+
+.lt {
+  position: absolute;
+  bottom: var(--bottom);
+  width: var(--width);
+  max-height: 460px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  opacity: 0;
+  transition: opacity 0.35s ease, transform 0.35s ease;
+  font-size: calc(40px * var(--scale) * var(--fit, 1));
+}
+.lt.pos-left   { left: 80px; }
+.lt.pos-right  { right: 80px; align-items: flex-end; }
+.lt.pos-center { left: 0; right: 0; margin: 0 auto; align-items: center; }
+/* Two-column and side-by-side layouts need more room. */
+.lt.wide { width: max(var(--width), 82%); }
+
+.lt.anim-slide { transform: translateY(40px); }
+.lt.show { opacity: 1; transform: none; }
+
+.lt-tag {
+  background: var(--accent);
+  color: #111;
+  font-weight: 700;
+  font-size: 0.6em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.35em 0.9em;
+  border-radius: 6px 6px 0 0;
+  max-width: 100%;
+  flex: none;
+  overflow-wrap: break-word;
+}
+.lt-tag:empty { display: none; }
+
+.lt-box {
+  box-sizing: border-box;
+  width: 100%;
+  background: var(--bg);
+  border-left: 8px solid var(--accent);
+  border-radius: 0 10px 10px 10px;
+  padding: 0.6em 0.9em 0.7em;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+  overflow-wrap: break-word;
+}
+.lt.pos-right .lt-box  { border-radius: 10px 0 10px 10px; }
+.lt.pos-center .lt-box { border-radius: 10px; }
+.lt.no-tag .lt-box     { border-radius: 10px; }
+
+.lt-title {
+  font-weight: 700;
+  font-size: 1.05em;
+  line-height: 1.2;
+}
+.lt-text {
+  font-size: 0.85em;
+  line-height: 1.4;
+  margin-top: 0.15em;
+}
+/* Messages keep the lines as they were typed. */
+.lt-text.keep-lines { white-space: pre-line; }
+.lt-title:empty, .lt-text:empty { display: none; }
+.lt-title:empty + .lt-text { margin-top: 0; }
+
+.lt-text .vnum {
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 0.7em;
+  vertical-align: super;
+  margin-right: 0.2em;
+}
+
+.lt-subs {
+  list-style: none;
+  margin: 0.35em 0 0;
+  padding: 0;
+  font-size: 0.75em;
+  line-height: 1.35;
+}
+.lt-subs:empty { display: none; }
+.lt-subs li {
+  position: relative;
+  padding-left: 1.4em;
+  margin-top: 0.2em;
+  opacity: 0.85;
+}
+.lt-subs li::before {
+  content: '';
+  position: absolute;
+  left: 0.3em;
+  top: 0.55em;
+  width: 0.45em;
+  height: 0.45em;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.lt-subs li.current { opacity: 1; font-weight: 600; }
+
+/* All points / side by side */
+.lt-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 1), minmax(0, 1fr));
+  gap: 0.35em 1.6em;
+}
+.lt-grid:empty { display: none; }
+.lt-title:not(:empty) ~ .lt-grid { margin-top: 0.3em; }
+.lt-grid.outline {
+  grid-template-rows: repeat(var(--rows, 1), auto);
+  grid-auto-flow: column;
+  font-size: 0.85em;
+  line-height: 1.3;
+}
+.pt { display: flex; gap: 0.5em; align-items: baseline; transition: opacity 0.3s; }
+.pt.dim { opacity: 0.5; }
+.pt.current .pt-text { font-weight: 700; }
+.pt .lt-subs { font-size: 0.85em; margin-top: 0.15em; }
+.pn { color: var(--accent); font-weight: 700; min-width: 1.1em; }
+.lt-grid.compare .col + .col {
+  border-left: 3px solid var(--accent);
+  padding-left: 1.2em;
+  margin-left: -0.4em;
+}
+.col-title { display: flex; gap: 0.45em; font-weight: 700; font-size: 0.95em; line-height: 1.25; }
+
+/* Song lyrics */
+.lt-text.lyrics {
+  font-size: 1em;
+  font-weight: 600;
+  line-height: 1.35;
+}
+.lt.pos-center .lt-text.lyrics { text-align: center; }
+.lt.pos-right .lt-text.lyrics { text-align: right; }
+
+/* Countdown */
+.lt-text.countdown {
+  font-size: 1.6em;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+
+/* Full screen: a backdrop over the whole picture with large centred text. */
+.lt.full {
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: auto;
+  max-height: none;
+  margin: 0;
+  box-sizing: border-box;
+  padding: 80px 140px;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  background: var(--fullbg);
+  font-size: calc(64px * var(--scale) * var(--fit, 1));
+}
+.lt.full.anim-slide { transform: none; }
+.lt.full .lt-tag {
+  background: none;
+  color: var(--accent);
+  font-size: 0.55em;
+  padding: 0 0 0.6em;
+  white-space: normal;
+}
+.lt.full .lt-box {
+  background: none;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  overflow: visible;
+}
+.lt.full .lt-text { line-height: 1.45; }
+.lt.full .lt-text.lyrics { text-align: center; }
+.lt.full .lt-subs, .lt.full .lt-grid { text-align: left; }
+.lt.full .lt-subs { display: inline-block; }
+.lt.full .lt-subs:empty { display: none; }
+.lt.full .lt-grid { justify-content: center; gap: 0.5em 2em; }
+.lt.full .lt-grid.outline { grid-template-columns: repeat(var(--cols, 1), auto); }
+.lt.full .lt-grid.compare .col + .col { padding-left: 1.6em; }
+
+/* Alignment: the text follows the box (lists keep their bullets on the left). */
+.lt.pos-center .lt-box { text-align: center; }
+.lt.pos-right .lt-box { text-align: right; }
+.lt .lt-subs, .lt .lt-grid { text-align: left; }
+.lt.pos-center .lt-grid { justify-content: center; }
+.lt.pos-right .lt-grid { justify-content: end; }
+.lt.full.pos-left { align-items: flex-start; text-align: left; }
+.lt.full.pos-right { align-items: flex-end; text-align: right; }
+.lt.full.pos-left .lt-text.lyrics { text-align: left; }
+.lt.full.pos-right .lt-text.lyrics { text-align: right; }
+.lt.pos-center .lt-box > .lt-subs:not(:empty), .lt.pos-right .lt-box > .lt-subs:not(:empty) { display: inline-block; }
+.lt.full.pos-left .lt-grid { justify-content: start; }
+.lt.full.pos-right .lt-grid { justify-content: end; }
+/* Centre / right: size columns to their text so the whole list moves, not just the heading. */
+.lt.pos-center .lt-grid, .lt.pos-right .lt-grid { grid-template-columns: repeat(var(--cols, 1), auto); }
+
+/* Second translation under the first */
+.lt-text .second {
+  margin-top: 0.5em;
+  padding-top: 0.45em;
+  border-top: 2px solid var(--accent);
+  opacity: 0.92;
+}
+.second-ref {
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 0.6em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 0.2em;
+}
+
+/* Content sits above the full screen background layer. */
+.lt-tag, .lt-box { position: relative; z-index: 1; }
+.lt-bg { display: none; }
+.lt.full .lt-bg {
+  display: block;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+.lt-bg img, .lt-bg video { width: 100%; height: 100%; object-fit: cover; }
+/* With a picture or video, the box colour becomes a tint over it. */
+.lt.full.has-bg { background: none; }
+.lt.full.has-bg .lt-bg::after { content: ''; position: absolute; inset: 0; background: var(--fullbg); }
+
+/* Giving */
+.giving { display: flex; align-items: center; gap: 0.9em; text-align: left; max-width: 100%; }
+.giving-qr { flex: none; width: 4.2em; height: 4.2em; background: #fff; border-radius: 0.2em; padding: 0.15em; }
+.giving-qr svg { width: 100%; height: 100%; display: block; }
+.giving-lines { line-height: 1.35; min-width: 0; }
+.lt.full .giving-qr { width: 5.5em; height: 5.5em; }
+.lt.pos-center .giving, .lt.full .giving { display: inline-flex; }
+
+/* Ticker along the bottom */
+.ticker {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 64px;
+  display: flex;
+  align-items: stretch;
+  background: var(--bg);
+  border-top: 4px solid var(--accent);
+  font-size: calc(30px * var(--scale));
+  font-weight: 600;
+  z-index: 5;
+  transform: translateY(110%);
+  transition: transform 0.4s ease;
+}
+.ticker.show { transform: none; }
+.tk-label {
+  flex: none;
+  display: flex;
+  align-items: center;
+  padding: 0 0.8em;
+  background: var(--accent);
+  color: #111;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 0.85em;
+}
+.ticker.no-label .tk-label { display: none; }
+.tk-track { flex: 1; overflow: hidden; display: flex; align-items: center; }
+.tk-text { display: flex; white-space: nowrap; animation: tk-scroll linear infinite; }
+.tk-text > span { padding-left: 0.8em; }
+.tk-sep { color: var(--accent); margin: 0 0.8em; }
+@keyframes tk-scroll { from { transform: translateX(0); } to { transform: translateX(calc(-1 * var(--tk-w, 50%))); } }
+/* Keep the lower third clear of the ticker. */
+#stage.has-ticker .lt:not(.full) { bottom: calc(var(--bottom) + 64px); }
+#stage.has-ticker .lt.full { bottom: 64px; }
+
+/* Corner logo */
+.logo {
+  position: absolute;
+  z-index: 6;
+  width: var(--logo-size, 192px);
+  transition: opacity 0.4s ease;
+  opacity: 0;
+  pointer-events: none;
+}
+.logo img { width: 100%; display: block; }
+.logo span {
+  display: block;
+  font-weight: 800;
+  font-size: calc(var(--logo-size, 192px) / 7);
+  color: #fff;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  overflow-wrap: break-word;
+}
+.logo.corner-top-left { top: 40px; left: 50px; }
+.logo.corner-top-right { top: 40px; right: 50px; text-align: right; }
+.logo.corner-bottom-left { bottom: 40px; left: 50px; }
+.logo.corner-bottom-right { bottom: 40px; right: 50px; text-align: right; }
+#stage.has-ticker .logo.corner-bottom-left, #stage.has-ticker .logo.corner-bottom-right { bottom: 104px; }
+
+/* Today's scriptures: short references sit close together in a box that fits them. */
+.lt.snug:not(.full) { width: fit-content; max-width: max(var(--width), 82%); }
+.lt.snug:not(.full) .lt-grid { grid-template-columns: repeat(var(--cols, 1), auto); column-gap: 2.5em; }
