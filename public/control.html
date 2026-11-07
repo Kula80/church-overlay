@@ -535,12 +535,25 @@ Prayer line: 024 000 0000"></textarea>
         <div class="remote-list" id="remoteList"></div>
 
         <div class="section-label">💾 Backup</div>
-        <p class="hint">One file with your songs, sermon notes, names, messages, order of service, giving, ticker, logo and
+        <p class="hint">Saves your songs, sermon notes, names, messages, order of service, giving, ticker, logo and
           style. Bibles aren't in it (download them again), and nor are uploaded pictures and videos.</p>
         <div class="row">
-          <a class="btn" href="/api/backup" download>⬇ Download backup</a>
-          <button class="btn" type="button" id="restoreBtn">⬆ Restore from backup…</button>
-          <input type="file" id="restoreFile" accept=".json,application/json" hidden>
+          <button class="btn primary" type="button" id="backupSave">💾 Save backup now</button>
+          <button class="btn" type="button" id="backupOpen">📂 Open backups folder</button>
+          <a class="btn" href="/api/backup" download>⬇ Download a copy</a>
+        </div>
+        <div class="hint" id="backupStatus"></div>
+        <p class="hint">A backup on this computer is lost if the computer is. Copy one from the folder to a USB drive or
+          email it to yourself.</p>
+        <div class="section-label">Saved backups</div>
+        <div class="list" id="backupList"></div>
+        <div class="section-label">Restore from a file</div>
+        <p class="hint">Choose a backup file you kept, then press Restore. It replaces what's here, but what's here is
+          saved to the list above first. If Choose file or Download a copy does nothing inside OBS, open this panel in a
+          normal browser, or copy the file into the backups folder and it appears in the list above.</p>
+        <div class="row">
+          <input type="file" id="restoreFile" class="grow" accept=".json,application/json">
+          <button class="btn" type="button" id="restoreBtn">⬆ Restore this file</button>
         </div>
         <div class="hint" id="restoreStatus"></div>
       </div>

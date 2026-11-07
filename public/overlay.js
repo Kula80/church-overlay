@@ -78,6 +78,7 @@ function render(item) {
         ? vs.map(v => `<span class="vnum">${v.verse}</span>${escapeHtml(v.text)}`).join(' ')
         : escapeHtml(vs[0].text);
       els.tag.textContent = `${item.reference} · ${item.translation}`;
+      els.text.classList.add('reading');
       els.text.innerHTML = verseHtml(item.verses);
       if (item.second) {
         els.text.innerHTML += `<div class="second"><div class="second-ref">${escapeHtml(item.second.reference)} · ${escapeHtml(item.second.translation)}</div>${verseHtml(item.second.verses)}</div>`;
@@ -98,15 +99,18 @@ function render(item) {
         : item.points.length > 3 ? 2 : 1;
       els.grid.classList.add('outline');
       els.grid.style.setProperty('--cols', cols);
-      els.grid.style.setProperty('--rows', Math.ceil(item.points.length / cols));
-      els.grid.innerHTML = item.points.map((p, i) => {
+      const perCol = Math.ceil(item.points.length / cols);
+      const pointHtml = (p, i) => {
         const state = item.current < 0 ? '' : i === item.current ? ' current' : ' dim';
         // The current point shows its sub-points; "Show all points" shows every point's.
         const pointSubs = i === item.current ? item.subs : item.current < 0 ? item.allSubs?.[i] : null;
         const subs = pointSubs?.length ? `<ul class="lt-subs">${subsHtml(pointSubs, i === item.current ? item.subCurrent : -1)}</ul>` : '';
         return `<div class="pt${state}">${item.numbered ? `<span class="pn">${i + 1}</span>` : '<span class="pn">•</span>'}
           <div><div class="pt-text">${richHtml(p)}</div>${subs}</div></div>`;
-      }).join('');
+      };
+      // Each column stacks its own points, so a long list of sub-points leaves no gap in the column next to it.
+      els.grid.innerHTML = Array.from({ length: cols }, (_, c) => `<div class="ol-col">${item.points
+        .slice(c * perCol, (c + 1) * perCol).map((p, j) => pointHtml(p, c * perCol + j)).join('')}</div>`).join('');
       wide = cols > 1;
       break;
     }
@@ -146,7 +150,7 @@ function render(item) {
     case 'message':
       els.tag.textContent = item.tag || '';
       els.title.textContent = item.title || '';
-      els.text.classList.add('keep-lines');
+      els.text.classList.add('keep-lines', 'reading');
       els.text.innerHTML = richHtml(item.text);
       break;
     case 'countdown': {

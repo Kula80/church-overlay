@@ -20,7 +20,7 @@ Anything you click in the control panel shows up on stream right away.
 3. If Windows says it protected your PC, press **More info**, then **Run anyway**.
 
 A new download has no Bibles, songs, sermons or settings. Download the Bibles again from the Bible tab, and use
-**⬆ Restore from backup** on the Style tab to bring your own things back. Keep your backup file somewhere safe:
+**Restore from a file** on the Style tab to bring your own things back. Keep your backup file somewhere safe:
 it isn't stored here.
 
 When replacing an older copy, keep its `data` folder, because that's where your things are saved.
@@ -113,9 +113,17 @@ in the control panel, so keep it open (for example docked in OBS). With a phone 
 
 ### Backup
 
-**⬇ Download backup** on the Style tab saves your songs, sermon notes, names, messages, order of service, giving,
-ticker, logo and style in one file. **⬆ Restore from backup** loads one back (click twice to confirm; it replaces
-what's there). Bibles aren't in the backup (download them again), and nor are uploaded pictures and videos.
+**💾 Save backup now** on the Style tab saves your songs, sermon notes, names, messages, order of service, giving,
+ticker, logo and style to `data/backups`, and it appears under **Saved backups**. Press **⬆ Restore** next to one
+to load it back (click twice to confirm; it replaces what's there, after saving what's there as another backup).
+Bibles aren't in a backup (download them again), and nor are uploaded pictures and videos.
+
+A backup on the computer is lost if the computer is. Press **📂 Open backups folder**, then copy a backup to a USB
+drive or email it to yourself. **⬇ Download a copy** does the same in a normal browser.
+
+To load a backup you kept on a new computer, use **Choose file** and **⬆ Restore this file** under **Restore from a
+file**. Or copy the file into `data/backups`, and it appears under **Saved backups**. Downloads and file pickers may
+not work inside an OBS dock, so if they do nothing there, open `http://localhost:5500` in a normal browser.
 
 ### Styling sermon notes and messages
 

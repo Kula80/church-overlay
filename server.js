@@ -1,6 +1,7 @@
 // Church Overlay - local server for OBS lower thirds.
 // Zero dependencies: run with `node server.js` (Node 18+).
 const http = require('http');
+const { spawn } = require('child_process');
 const os = require('os');
 const fs = require('fs');
 const path = require('path');
@@ -11,6 +12,8 @@ const DATA = path.join(__dirname, 'data');
 fs.mkdirSync(DATA, { recursive: true });
 const MEDIA = path.join(DATA, 'media'); // uploaded logos and backgrounds
 fs.mkdirSync(MEDIA, { recursive: true });
+const BACKUPS = path.join(DATA, 'backups'); // backups saved from the Style tab
+fs.mkdirSync(BACKUPS, { recursive: true });
 const bibles = require('./bible')(DATA);
 
 const MIME = {
@@ -175,6 +178,44 @@ function remoteCommand(cmd, arg) {
   for (const res of clients) res.write(msg);
 }
 
+// ---------- Backups ----------
+function backupData() {
+  const { showFor, showUnit, hideFor, hideUnit } = state.auto;
+  const { on, ...ticker } = state.ticker;
+  return { app: 'church-overlay', version: 1, saved: new Date().toISOString(), store, theme: state.theme, ticker, logo: state.logo, auto: { showFor, showUnit, hideFor, hideUnit } };
+}
+const isBackup = b => b?.app === 'church-overlay' && !!b.store && typeof b.store === 'object' && !Array.isArray(b.store);
+function saveBackup(label = 'backup') {
+  const now = new Date();
+  const local = new Date(now - now.getTimezoneOffset() * 60000).toISOString().slice(0, 19).replace(/[T:]/g, '-');
+  const name = `church-overlay-${label}-${local}.json`;
+  writeJSON(path.join('backups', name), backupData());
+  return name;
+}
+// Any backup file put in the folder shows up too, so one can be restored without uploading it.
+function listBackups() {
+  return fs.readdirSync(BACKUPS).filter(f => f.toLowerCase().endsWith('.json')).map(name => {
+    try {
+      const b = JSON.parse(fs.readFileSync(path.join(BACKUPS, name), 'utf8').replace(/^\ufeff/, ''));
+      return isBackup(b) ? { name, saved: b.saved } : null;
+    } catch { return null; }
+  }).filter(Boolean).sort((a, b) => String(b.saved).localeCompare(String(a.saved)));
+}
+function restoreData(b) {
+  // What's here now is saved first, so a restore can be undone.
+  saveBackup('before-restore');
+  const keys = new Set([...Object.keys(store), ...Object.keys(b.store)]);
+  for (const k of Object.keys(store)) delete store[k];
+  Object.assign(store, b.store);
+  writeJSON('store.json', store);
+  for (const k of keys) storeChanged(k);
+  if (b.theme) { state.theme = { ...DEFAULT_THEME, ...b.theme }; writeJSON('theme.json', state.theme); }
+  if (b.ticker) { Object.assign(state.ticker, b.ticker, { on: false }); saveTicker(); }
+  if (b.logo) { state.logo = { ...state.logo, ...b.logo }; writeJSON('logo.json', state.logo); }
+  if (b.auto) { Object.assign(state.auto, b.auto); saveAuto(); }
+  broadcast();
+}
+
 function send(res, status, data) {
   res.writeHead(status, { 'Content-Type': MIME['.json'], 'Cache-Control': 'no-store' });
   res.end(JSON.stringify(data));
@@ -267,9 +308,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (p === '/api/backup' && req.method === 'GET') {
-      const { showFor, showUnit, hideFor, hideUnit } = state.auto;
-      const { on, ...ticker } = state.ticker;
-      const backup = { app: 'church-overlay', version: 1, saved: new Date().toISOString(), store, theme: state.theme, ticker, logo: state.logo, auto: { showFor, showUnit, hideFor, hideUnit } };
+      const backup = backupData();
       res.writeHead(200, {
         'Content-Type': MIME['.json'],
         'Content-Disposition': `attachment; filename="church-overlay-backup-${new Date().toISOString().slice(0, 10)}.json"`,
@@ -279,18 +318,27 @@ const server = http.createServer(async (req, res) => {
 
     if (p === '/api/restore' && req.method === 'POST') {
       const b = await readBody(req, 50e6);
-      if (b.app !== 'church-overlay' || !b.store) return send(res, 400, { error: "That isn't a Church Overlay backup file." });
-      const keys = new Set([...Object.keys(store), ...Object.keys(b.store)]);
-      for (const k of Object.keys(store)) delete store[k];
-      Object.assign(store, b.store);
-      writeJSON('store.json', store);
-      for (const k of keys) storeChanged(k);
-      if (b.theme) { state.theme = { ...DEFAULT_THEME, ...b.theme }; writeJSON('theme.json', state.theme); }
-      if (b.ticker) { Object.assign(state.ticker, b.ticker, { on: false }); saveTicker(); }
-      if (b.logo) { state.logo = { ...state.logo, ...b.logo }; writeJSON('logo.json', state.logo); }
-      if (b.auto) { Object.assign(state.auto, b.auto); saveAuto(); }
-      broadcast();
+      if (!isBackup(b)) return send(res, 400, { error: "That isn't a Church Overlay backup file." });
+      restoreData(b);
       return send(res, 200, { ok: true });
+    }
+
+    if (p === '/api/backups' && req.method === 'GET') return send(res, 200, { folder: BACKUPS, files: listBackups() });
+    if (p === '/api/backups' && req.method === 'POST') return send(res, 200, { name: saveBackup(), folder: BACKUPS });
+    if (p === '/api/backups/restore' && req.method === 'POST') {
+      const { name } = await readBody(req);
+      if (!/^[\w. -]+\.json$/i.test(name || '')) return send(res, 400, { error: 'That backup was not found.' });
+      let b;
+      try { b = JSON.parse(fs.readFileSync(path.join(BACKUPS, name), 'utf8').replace(/^\ufeff/, '')); }
+      catch { return send(res, 404, { error: 'That backup could not be read.' }); }
+      if (!isBackup(b)) return send(res, 400, { error: "That isn't a Church Overlay backup file." });
+      restoreData(b);
+      return send(res, 200, { ok: true });
+    }
+    if (p === '/api/backups/open' && req.method === 'POST') {
+      // Opens the folder on the computer running the program, to copy a backup to a USB drive or email.
+      spawn('explorer', [BACKUPS], { detached: true, stdio: 'ignore' }).on('error', () => {}).unref();
+      return send(res, 200, { folder: BACKUPS });
     }
 
     if (p === '/api/theme' && req.method === 'POST') {

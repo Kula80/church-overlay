@@ -1794,17 +1794,43 @@ async function renderPhone() {
   $('#remoteList').innerHTML = cmds.map(([c, label]) => `<div class="remote"><span>${label}</span><code class="copy">${escapeHtml(`${base}/api/remote/${c}`)}</code></div>`).join('');
 }
 
-$('#restoreBtn').addEventListener('click', e => confirmClick(e.currentTarget, () => $('#restoreFile').click(), 'Click again: this replaces everything'));
-$('#restoreFile').addEventListener('change', async e => {
-  const file = e.target.files[0];
-  e.target.value = '';
-  if (!file) return;
-  let data;
-  try { data = JSON.parse(await file.text()); } catch { $('#restoreStatus').textContent = "That file isn't a backup."; return; }
-  const res = await api.send('POST', '/api/restore', data);
-  if (res.error) { $('#restoreStatus').textContent = res.error; return; }
-  $('#restoreStatus').textContent = 'Restored. Reloading…';
+const REPLACE_ASK = 'Click again: this replaces everything';
+function restored(res, statusEl) {
+  if (res.error) { statusEl.textContent = res.error; return; }
+  statusEl.textContent = 'Restored. Reloading…';
   setTimeout(() => location.reload(), 800);
+}
+async function renderBackups() {
+  const { folder, files } = await api.get('/api/backups');
+  $('#backupList').innerHTML = files.length ? files.slice(0, 15).map(f => `
+    <div class="item">
+      <div class="body"><strong>${escapeHtml(f.saved ? new Date(f.saved).toLocaleString() : f.name)}</strong>
+        <div class="sub">${escapeHtml(f.name)}</div></div>
+      <div class="actions"><button class="btn small" data-restore="${escapeHtml(f.name)}">⬆ Restore</button></div>
+    </div>`).join('') : '<p class="hint">No backups yet. Press Save backup now.</p>';
+  $('#backupList').dataset.folder = folder;
+}
+$('#backupSave').addEventListener('click', async () => {
+  const res = await api.send('POST', '/api/backups');
+  $('#backupStatus').textContent = res.error || `Saved in ${res.folder}`;
+  renderBackups();
+});
+$('#backupOpen').addEventListener('click', async () => {
+  const res = await api.send('POST', '/api/backups/open');
+  $('#backupStatus').textContent = `Backups folder: ${res.folder}`;
+});
+$('#backupList').addEventListener('click', e => {
+  const btn = e.target.closest('[data-restore]');
+  if (btn) confirmClick(btn, async () => restored(await api.send('POST', '/api/backups/restore', { name: btn.dataset.restore }), $('#backupStatus')), REPLACE_ASK);
+});
+$('#restoreBtn').addEventListener('click', e => {
+  const file = $('#restoreFile').files[0];
+  if (!file) { $('#restoreStatus').textContent = 'Choose a backup file first.'; return; }
+  confirmClick(e.currentTarget, async () => {
+    let data;
+    try { data = JSON.parse((await file.text()).replace(/^\ufeff/, '')); } catch { $('#restoreStatus').textContent = "That file isn't a backup."; return; }
+    restored(await api.send('POST', '/api/restore', data), $('#restoreStatus'));
+  }, REPLACE_ASK);
 });
 
 // ---------- Setup URLs ----------
@@ -1941,5 +1967,6 @@ async function refreshStore(key) {
     checkGivingQr();
   }
   renderPhone();
+  renderBackups();
   connect();
 })();
